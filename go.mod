@@ -1,3 +1,5 @@
 module github.com/swd-15/sbom_manage
 
 go 1.26.2
+
+require github.com/Masterminds/semver/v3 v3.4.0 // indirect

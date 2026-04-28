@@ -1,0 +1,38 @@
+{
+  "SchemaVersion": 2,
+  "Trivy": {
+    "Version": "0.69.3"
+  },
+  "ReportID": "019dd1cc-76b2-7cc9-9c25-77d29daa3daf",
+  "CreatedAt": "2026-04-28T10:55:31.122839+09:00",
+  "ArtifactID": "sha256:06611b62a928271c85289c5002b4794dfd801d63e702c37bffeb5b548728d30e",
+  "ArtifactName": "/tmp/semver",
+  "ArtifactType": "repository",
+  "Metadata": {
+    "RepoURL": "https://github.com/Masterminds/semver.git",
+    "Branch": "master",
+    "Commit": "7e83c080cfb4455752c654805b189274a10890ab",
+    "CommitMsg": "Merge pull request #284 from Masterminds/dependabot/github_actions/golangci/golangci-lint-action-9.2.0\n\nBump golangci/golangci-lint-action from 7.0.1 to 9.2.0",
+    "Author": "Matt Farina \u003cmatt.farina@suse.com\u003e",
+    "Committer": "GitHub \u003cnoreply@github.com\u003e"
+  },
+  "Results": [
+    {
+      "Target": "go.mod",
+      "Class": "lang-pkgs",
+      "Type": "gomod",
+      "Packages": [
+        {
+          "ID": "github.com/Masterminds/semver/v3",
+          "Name": "github.com/Masterminds/semver/v3",
+          "Identifier": {
+            "PURL": "pkg:golang/github.com/masterminds/semver/v3",
+            "UID": "328843b905e52584"
+          },
+          "Relationship": "root",
+          "AnalyzedBy": "gomod"
+        }
+      ]
+    }
+  ]
+}

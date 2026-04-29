@@ -23,10 +23,10 @@
       "Type": "gomod",
       "Packages": [
         {
-          "ID": "github.com/Masterminds/semver/v3",
-          "Name": "github.com/Masterminds/semver/v3",
+          "ID": "vulnerable-package@1.0.0",
+          "Name": "vulnerable-package",
           "Identifier": {
-            "PURL": "pkg:golang/github.com/masterminds/semver/v3",
+            "PURL": "pkg:golang/vulnerable-package@1.0.0",
             "UID": "328843b905e52584"
           },
           "Relationship": "root",

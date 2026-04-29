@@ -6,39 +6,43 @@ import (
 	"sbom_manage/internal/model"
 )
 
-
-type cycloneDX struct {
-	Metadata struct {
-		Component struct {
-			Name string `json:"name"`
-		} `json:"component"`
-	} `json:"metadata"`
-	Components []struct {
-		Name    string `json:"name"`
-		Version string `json:"version"`
-		PURL    string `json:"purl"`
-	} `json:"components"`
+// CycloneDX の全体構造
+type CycloneDX struct {
+	BOMFormat  string      `json:"bomFormat"`
+	SpecVersion string     `json:"specVersion"`
+	Components []Component `json:"components"`
 }
 
-func ParseCycloneDX(path string) (model.SBOM, error) {
-	data, err := os.ReadFile(path)
+// 個別のパッケージ構造
+type Component struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	PURL    string `json:"purl"`
+}
+
+func ParseCycloneDX(filePath string) (*model.SBOM, error) {
+	file, err := os.ReadFile(filePath)
 	if err != nil {
-		return model.SBOM{}, err
+		return nil, err
 	}
 
-	var cd cycloneDX
-	if err := json.Unmarshal(data, &cd); err != nil {
-		return model.SBOM{}, err
+	var cd CycloneDX
+	if err := json.Unmarshal(file, &cd); err != nil {
+		return nil, err
 	}
 
-	var s model.SBOM
-	s.Source = cd.Metadata.Component.Name
+	// model.SBOM 形式に変換
+	report := &model.SBOM{
+		Source: filePath,
+	}
+
 	for _, c := range cd.Components {
-		s.Packages = append(s.Packages, model.Package{
+		report.Packages = append(report.Packages, model.Package{
 			Name:             c.Name,
 			InstalledVersion: c.Version,
 			PURL:             c.PURL,
 		})
 	}
-	return s, nil
+
+	return report, nil
 }

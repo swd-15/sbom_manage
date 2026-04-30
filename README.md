@@ -1,11 +1,11 @@
 # sbom_manage
-An actionable SBOM management tool focusing on "Responsibility Attribution" and decision-making support for security operations.
+「今すぐ対応が必要な脆弱性」を特定し、組織内の適切な担当者へ自動的に振り分けるsbom管理ツール。
 
 ## 主な機能
 
-- **JSON Parser**: Trivy等が出力したJSON形式のSBOMを高速に解析。
-- **Fixed Version Mapping**: 脆弱性を解決するために目指すべき「修正済みバージョン」を自動抽出。
-- **Responsible Attribution**: パッケージの特性から、対応すべき責任者（開発/インフラ等）を自動判定。
+- **CycloneDX v1.6準拠**: SyftやTrivyで生成された最新のCycloneDXフォーマットを高速に解析。
+- **リアルタイム脆弱性診断 (OSV API連携)**: googleが運営する「OSV (Open Source Vulnerabilities) API」に直接照会。
+- **インテリジェント・自動トリアージエンジン**: 深刻度をスコアからも動的補完、設定した基準をもとに責任部署を自動判断。
 
 ## データ構造 (Core Logic)
 
@@ -23,13 +23,16 @@ An actionable SBOM management tool focusing on "Responsibility Attribution" and 
 | **HasPatch** | パッチの有無 | 即座に対策可能かの判断 |
 | **Responsible** | 対応責任者 | 誰が動くべきかの明確化 |
 
-## ロードマップ
 
-- [ ]  GoによるJSONパース処理の実装
-- [ ]  バージョン比較ロジックの構築
-- [ ]  JPCERT/CCのガイドラインに基づく判定ロジックの統合
-- [ ]  ターミナルへの構造化出力の実装
+## 🚀 使い方
 
+### ビルド
+Go 1.21 以上が必要です。
+```bash
+go build -o sbom_manage ./cmd/sbom-cli/main.go
+
+### 実行
+./sbom_manage testdata/testfailed.json
 ## 📜 ライセンス
 
 [MIT License](https://www.notion.so/LICENSE)

@@ -33,6 +33,7 @@ go build -o sbom_manage ./cmd/sbom-cli/main.go
 
 ### 実行
 ./sbom_manage testdata/testfailed.json
+```
 ## 📜 ライセンス
 
 [MIT License](https://www.notion.so/LICENSE)

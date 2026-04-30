@@ -6,32 +6,41 @@ import (
 )
 
 var defaultEcosystemMap = map[string]string{
-	"golang":   "Development Team",
-	"npm":      "Development Team",
-	"pypi":     "Development Team",
-	"maven":    "Development Team",
-	"cargo":    "Development Team",
-	"deb":      "Infrastructure Team",
-	"rpm":      "Infrastructure Team",
-	"apk":      "Infrastructure Team",
+	"golang": "Development Team",
+	"npm":    "Development Team",
+	"pypi":   "Development Team",
+	"maven":  "Development Team",
+	"cargo":  "Development Team",
+	"deb":    "Infrastructure Team",
+	"rpm":    "Infrastructure Team",
+	"apk":    "Infrastructure Team",
 }
 
 func TriageVulnerability(v *model.Vulnerability) {
-	// 1. パッチ有無の自動設定
 	v.HasPatch = (v.FixedVersion != "")
 
-	// 2. 責任部署の判定 (優先順位: Score > Map > Default)
-	if v.Score >= 8.0 {
+
+
+	if v.Score >= 9.0 {
+		v.Severity = "CRITICAL"
+	} else if v.Score >= 7.0 {
+		v.Severity = "HIGH"
+	} else if v.Score >= 4.0 {
+		v.Severity = "MEDIUM"
+	} else if v.Score > 0 {
+		v.Severity = "LOW"
+	}
+
+	// 責任部署の判定
+	if v.Score >= 8.0 || v.Severity == "HIGH" || v.Severity == "CRITICAL" {
 		v.Responsible = "Security CSIRT (High Priority)"
 		return
 	}
 
 	eco := extractType(v.Purl)
-
 	if dept, ok := defaultEcosystemMap[eco]; ok {
 		v.Responsible = dept
 	} else {
-		// 判定不能なものはセキュリティチームへ
 		v.Responsible = "Security CSIRT (Triage Required)"
 	}
 }

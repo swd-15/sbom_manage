@@ -1,0 +1,21 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "components": [
+    {
+      "name": "lodash",
+      "version": "4.17.20",
+      "purl": "pkg:npm/lodash@4.17.20"
+    },
+    {
+      "name": "jsonwebtoken",
+      "version": "8.5.1",
+      "purl": "pkg:npm/jsonwebtoken@8.5.1"
+    },
+    {
+      "name": "serious-vulnerability-package",
+      "version": "1.0.0",
+      "purl": "pkg:golang/github.com/vulnerable/pkg@1.0.0"
+    }
+  ]
+}

@@ -3,7 +3,7 @@
 
 ## 主な機能
 
-- **CycloneDX v1.6準拠**: SyftやTrivyで生成された最新のCycloneDXフォーマットを高速に解析。
+- **CycloneDX v1.6準拠**: SyftやTrivyで生成された最新のCycloneDXフォーマットを解析。
 - **リアルタイム脆弱性診断 (OSV API連携)**: googleが運営する「OSV (Open Source Vulnerabilities) API」に直接照会。
 - **インテリジェント・自動トリアージエンジン**: 深刻度をスコアからも動的補完、設定した基準をもとに責任部署を自動判断。
 

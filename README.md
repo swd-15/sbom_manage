@@ -30,8 +30,9 @@
 Go 1.21 以上が必要です。
 ```bash
 go build -o sbom_manage ./cmd/sbom-cli/main.go
-
+```
 ### 実行
+```bash
 ./sbom_manage testdata/testfailed.json
 ```
 ## 📜 ライセンス

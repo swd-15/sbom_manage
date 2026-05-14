@@ -84,24 +84,24 @@ func TestTriageVulnerability_Responsible(t *testing.T) {
 	tests := []struct {
 		name            string
 		purl            string
+		target          string
 		score           float64
 		severity        string
 		wantResponsible string
 	}{
-
-		{"CRITICAL→CSIRT", "pkg:npm/lodash@4.17.20", 9.5, "CRITICAL", "Security CSIRT (High Priority)"},
-		{"HIGH→CSIRT", "pkg:npm/lodash@4.17.20", 8.0, "HIGH", "Security CSIRT (High Priority)"},
-		{"スコア8.0→CSIRT", "pkg:npm/lodash@4.17.20", 8.0, "", "Security CSIRT (High Priority)"},
-
-		{"npm→Development", "pkg:npm/lodash@4.17.20", 5.0, "MEDIUM", "Development Team"},
-		{"pypi→Development", "pkg:pypi/django@3.2.0", 5.0, "MEDIUM", "Development Team"},
-		{"golang→Development", "pkg:golang/github.com/foo/bar@1.0.0", 5.0, "MEDIUM", "Development Team"},
-		{"deb→Infrastructure", "pkg:deb/ubuntu/openssl@1.1.1k", 5.0, "MEDIUM", "Infrastructure Team"},
-		{"apk→Infrastructure", "pkg:apk/alpine/busybox@1.34.1", 5.0, "MEDIUM", "Infrastructure Team"},
-
-		{"不明→Triage Required", "pkg:unknown/foo@1.0.0", 5.0, "MEDIUM", "Security CSIRT (Triage Required)"},
-
-		{"PURL空→Triage Required", "", 5.0, "MEDIUM", "Security CSIRT (Triage Required)"},
+		{"CRITICAL→CSIRT", "pkg:npm/lodash@4.17.20", "", 9.5, "CRITICAL", "Security CSIRT (High Priority)"},
+		{"HIGH→CSIRT", "pkg:npm/lodash@4.17.20", "", 8.0, "HIGH", "Security CSIRT (High Priority)"},
+		{"スコア8.0→CSIRT", "pkg:npm/lodash@4.17.20", "", 8.0, "", "Security CSIRT (High Priority)"},
+		{"npm→Development", "pkg:npm/lodash@4.17.20", "", 5.0, "MEDIUM", "Development Team"},
+		{"pypi→Development", "pkg:pypi/django@3.2.0", "", 5.0, "MEDIUM", "Development Team"},
+		{"golang→Development", "pkg:golang/github.com/foo/bar@1.0.0", "", 5.0, "MEDIUM", "Development Team"},
+		{"deb→Infrastructure", "pkg:deb/ubuntu/openssl@1.1.1k", "", 5.0, "MEDIUM", "Infrastructure Team"},
+		{"apk→Infrastructure", "pkg:apk/alpine/busybox@1.34.1", "", 5.0, "MEDIUM", "Infrastructure Team"},
+		{"不明→Triage Required", "pkg:unknown/foo@1.0.0", "", 5.0, "MEDIUM", "Security CSIRT (Triage Required)"},
+		{"PURL空→Triage Required", "", "", 5.0, "MEDIUM", "Security CSIRT (Triage Required)"},
+		{"openssl→CSIRT", "pkg:npm/openssl@1.0.0", "openssl", 5.0, "MEDIUM", "Security CSIRT (High Priority)"},
+		{"jwt→CSIRT", "pkg:npm/jwt@1.0.0", "jwt", 5.0, "MEDIUM", "Security CSIRT (High Priority)"},
+		{"crypto→CSIRT", "pkg:pypi/crypto@1.0.0", "crypto", 5.0, "MEDIUM", "Security CSIRT (High Priority)"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -109,6 +109,7 @@ func TestTriageVulnerability_Responsible(t *testing.T) {
 				Purl:     tt.purl,
 				Score:    tt.score,
 				Severity: tt.severity,
+				Target:   tt.target,
 			}
 			TriageVulnerability(v)
 			if v.Responsible != tt.wantResponsible {

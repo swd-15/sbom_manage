@@ -16,10 +16,14 @@ var defaultEcosystemMap = map[string]string{
 	"apk":    "Infrastructure Team",
 }
 
+var securityPackages = []string{
+	"openssl", "libssl", "crypto", "jwt", "auth", "tls", "ssl",
+}
+
 func TriageVulnerability(v *model.Vulnerability) {
 	v.HasPatch = (v.FixedVersion != "")
 
-	// APIから取得したSeverityがない場合のみスコアから補完する
+	// APIから取得したSeverityがない場合のみスコアから補完
 	if v.Severity == "" {
 		if v.Score >= 9.0 {
 			v.Severity = "CRITICAL"
@@ -32,12 +36,21 @@ func TriageVulnerability(v *model.Vulnerability) {
 		}
 	}
 
-	// 責任部署の判定
+	// パッケージ名によるセキュリティ判定（エコシステム・スコアより優先）
+	for _, keyword := range securityPackages {
+		if strings.Contains(strings.ToLower(v.Target), keyword) {
+			v.Responsible = "Security CSIRT (High Priority)"
+			return
+		}
+	}
+
+	// スコア・深刻度による判定
 	if v.Score >= 7.0 || v.Severity == "HIGH" || v.Severity == "CRITICAL" {
 		v.Responsible = "Security CSIRT (High Priority)"
 		return
 	}
 
+	// エコシステムによる判定
 	eco := extractType(v.Purl)
 	if dept, ok := defaultEcosystemMap[eco]; ok {
 		v.Responsible = dept

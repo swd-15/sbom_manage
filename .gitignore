@@ -1,0 +1,26 @@
+# Binary
+sbom_manage
+sbom_manage.exe
+
+# Build artifacts
+/dist/
+/bin/
+
+# Go test cache
+*.test
+*.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets / local config
+.env
+*.local
+.DS_Store

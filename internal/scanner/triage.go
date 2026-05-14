@@ -33,7 +33,7 @@ func TriageVulnerability(v *model.Vulnerability) {
 	}
 
 	// 責任部署の判定
-	if v.Score >= 8.0 || v.Severity == "HIGH" || v.Severity == "CRITICAL" {
+	if v.Score >= 7.0 || v.Severity == "HIGH" || v.Severity == "CRITICAL" {
 		v.Responsible = "Security CSIRT (High Priority)"
 		return
 	}

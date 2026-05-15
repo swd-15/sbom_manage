@@ -16,40 +16,40 @@ import (
 )
 
 func main() {
-    configPath := flag.String("config", "config.yaml", "設定ファイルのパス")
-    flag.Parse()
+	configPath := flag.String("config", "config.yaml", "設定ファイルのパス")
+	flag.Parse()
 
-    args := flag.Args()
-    if len(args) < 1 {
-        printUsage()
-        os.Exit(1)
-    }
+	args := flag.Args()
+	if len(args) < 1 {
+		printUsage()
+		os.Exit(1)
+	}
 
-    cfg, err := config.Load(*configPath)
-    if err != nil {
-        cfg = config.DefaultConfig()
-    }
+	cfg, err := config.Load(*configPath)
+	if err != nil {
+		cfg = config.DefaultConfig()
+	}
 
-    st, err := store.DefaultStore()
-    if err != nil {
-        log.Fatalf("❌ ストア初期化エラー: %v", err)
-    }
+	st, err := store.DefaultStore()
+	if err != nil {
+		log.Fatalf("❌ ストア初期化エラー: %v", err)
+	}
 
-    switch args[0] {
-    case "scan":
-        cmdScan(args[1:], st, cfg)
-    case "history":
-        cmdHistory(st)
-    case "status":
-        cmdStatus(args[1:], st)
-    default:
-        fmt.Fprintf(os.Stderr, "❌ 不明なコマンド: %q\n\n", args[0])
-        printUsage()
-        os.Exit(1)
-    }
+	switch args[0] {
+	case "scan":
+		os.Exit(cmdScan(args[1:], st, cfg))
+	case "history":
+		cmdHistory(st)
+	case "status":
+		cmdStatus(args[1:], st)
+	default:
+		fmt.Fprintf(os.Stderr, "❌ 不明なコマンド: %q\n\n", args[0])
+		printUsage()
+		os.Exit(1)
+	}
 }
 
-func cmdScan(args []string, st store.Store, cfg *config.Config) {
+func cmdScan(args []string, st store.Store, cfg *config.Config) int {
 	if len(args) < 1 {
 		fmt.Fprintln(os.Stderr, "Usage: sbom_manage scan <sbom.json>")
 		os.Exit(1)
@@ -126,6 +126,15 @@ func cmdScan(args []string, st store.Store, cfg *config.Config) {
 	} else {
 		fmt.Printf("\n💾 スキャン結果を保存しました (ID: %s)\n", scanID)
 	}
+
+	// CRITICAL/HIGHがあればexit 1
+	for _, v := range vulns {
+		if v.Score >= 7.0 || v.Severity == "HIGH" || v.Severity == "CRITICAL" {
+			fmt.Fprintln(os.Stderr, "\n❌ High以上の脆弱性が検出されました")
+			return 1
+		}
+	}
+	return 0
 }
 
 func cmdHistory(st store.Store) {
@@ -219,6 +228,9 @@ func listAllStatuses(st store.Store) {
 func printUsage() {
 	fmt.Print(`Usage: sbom_manage <command> [args]
 
+Options:
+  -config <path>   設定ファイルのパスを指定（デフォルト: ./config.yaml）
+
 Commands:
   scan <sbom.json>                          SBOMをスキャンして結果をDBに保存
   history                                   過去のスキャン履歴を表示
@@ -228,6 +240,7 @@ Commands:
 
 Examples:
   ./sbom_manage scan testdata/testfailed.json
+  ./sbom_manage -config /etc/sbom_manage/config.yaml scan sbom.json
   ./sbom_manage history
   ./sbom_manage status CVE-2021-44228 in-progress "担当者アサイン済み"
   ./sbom_manage status CVE-2021-44228 done "4.17.21にアップデート完了"

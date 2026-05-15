@@ -1,6 +1,6 @@
 # sbom_manage
 
-**An actionable SBOM management tool** focusing on "Responsibility Attribution" and decision-making support for security operations.
+**An actionable SBOM management tool** focusing on Responsibility Attribution and decision-making support for security operations.
 
 対応が必要な脆弱性を特定し、組織内の適切な担当者へ自動的に振り分けるSBOM管理CLIツールです。
 
@@ -16,6 +16,7 @@
 | **Responsible Attribution** | エコシステムとスコアから担当部署を自動判定 |
 | **スキャン履歴管理** | 過去のスキャン結果をローカルに蓄積・参照 |
 | **対応状況トラッキング** | 脆弱性ごとに open / in-progress / done を管理 |
+| **設定ファイル対応** | `config.yaml` で担当部署をコードを触らずに変更可能 |
 
 ---
 
@@ -44,6 +45,7 @@ sbom_manage/
 ├── main.go
 ├── go.mod
 ├── go.sum
+├── config.yaml             # トリアージ設定（担当部署・セキュリティキーワード）
 ├── testdata/
 │   ├── testfailed.json
 │   └── cyclonedx_test.json
@@ -51,6 +53,9 @@ sbom_manage/
     ├── compare/
     │   ├── version.go          # semver比較ロジック
     │   └── version_test.go
+    ├── config/
+    │   ├── config.go           # config.yaml読み込み
+    │   └── config_test.go
     ├── model/
     │   └── sbom.go             # コアデータ構造体
     ├── parser/
@@ -77,7 +82,7 @@ sbom_manage/
 ### インストール
 
 ```bash
-git clone https://github.com/<your-org>/sbom_manage.git
+git clone https://github.com/swd-15/sbom_manage.git
 cd sbom_manage
 go build -o sbom_manage .
 ```
@@ -92,11 +97,20 @@ status <CVE-ID> <open|in-progress|done>   対応状況を更新
 status <CVE-ID> <status> <note>           メモ付きで更新
 ```
 
+### オプション
+
+```
+-config <path>   設定ファイルのパスを指定（デフォルト: ./config.yaml）
+```
+
 ### 実行例
 
 ```bash
 # スキャン
 ./sbom_manage scan testdata/testfailed.json
+
+# 設定ファイルを指定してスキャン
+./sbom_manage -config /etc/sbom_manage/config.yaml scan sbom.json
 
 # 履歴確認
 ./sbom_manage history
@@ -137,16 +151,45 @@ go test ./...
 
 ---
 
+## ⚙️ 設定ファイル (config.yaml)
+
+担当部署やセキュリティキーワードを組織に合わせてカスタマイズできます。
+
+```yaml
+ecosystem_owners:
+  golang: "Development Team"
+  npm:    "Development Team"
+  pypi:   "Development Team"
+  maven:  "Development Team"
+  cargo:  "Development Team"
+  deb:    "Infrastructure Team"
+  rpm:    "Infrastructure Team"
+  apk:    "Infrastructure Team"
+
+security_keywords:
+  - openssl
+  - libssl
+  - crypto
+  - jwt
+  - auth
+  - tls
+  - ssl
+```
+
+`config.yaml` が見つからない場合は上記のデフォルト値で動作します。
+
+---
+
 ## トリアージロジック
 
-### 責任部署の自動判定
+責任部署は以下の優先順位で判定されます。
 
-| 条件 | 担当 |
-|------|------|
-| Score ≥ 8.0 または HIGH / CRITICAL | `Security CSIRT (High Priority)` |
-| `pkg:npm/*` `pkg:pypi/*` `pkg:golang/*` 等 | `Development Team` |
-| `pkg:deb/*` `pkg:rpm/*` `pkg:apk/*` 等 | `Infrastructure Team` |
-| 上記以外 | `Security CSIRT (Triage Required)` |
+| 優先順位 | 条件 | 担当 |
+|---------|------|------|
+| 1 | `security_keywords` に一致するパッケージ名 | `Security CSIRT (High Priority)` |
+| 2 | Score ≥ 7.0 または HIGH / CRITICAL | `Security CSIRT (High Priority)` |
+| 3 | `ecosystem_owners` に一致するエコシステム | 設定値に従う |
+| 4 | 上記以外 | `Security CSIRT (Triage Required)` |
 
 ### Severity の決定ルール
 

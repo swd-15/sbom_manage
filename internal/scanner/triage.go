@@ -2,25 +2,12 @@ package scanner
 
 import (
 	"strings"
+
+	"sbom_manage/internal/config"
 	"sbom_manage/internal/model"
 )
 
-var defaultEcosystemMap = map[string]string{
-	"golang": "Development Team",
-	"npm":    "Development Team",
-	"pypi":   "Development Team",
-	"maven":  "Development Team",
-	"cargo":  "Development Team",
-	"deb":    "Infrastructure Team",
-	"rpm":    "Infrastructure Team",
-	"apk":    "Infrastructure Team",
-}
-
-var securityPackages = []string{
-	"openssl", "libssl", "crypto", "jwt", "auth", "tls", "ssl",
-}
-
-func TriageVulnerability(v *model.Vulnerability) {
+func TriageVulnerability(v *model.Vulnerability, cfg *config.Config) {
 	v.HasPatch = (v.FixedVersion != "")
 
 	// APIから取得したSeverityがない場合のみスコアから補完
@@ -36,8 +23,8 @@ func TriageVulnerability(v *model.Vulnerability) {
 		}
 	}
 
-	// パッケージ名によるセキュリティ判定（エコシステム・スコアより優先）
-	for _, keyword := range securityPackages {
+	// パッケージ名によるセキュリティ判定
+	for _, keyword := range cfg.SecurityKeywords {
 		if strings.Contains(strings.ToLower(v.Target), keyword) {
 			v.Responsible = "Security CSIRT (High Priority)"
 			return
@@ -52,7 +39,7 @@ func TriageVulnerability(v *model.Vulnerability) {
 
 	// エコシステムによる判定
 	eco := extractType(v.Purl)
-	if dept, ok := defaultEcosystemMap[eco]; ok {
+	if dept, ok := cfg.EcosystemOwners[eco]; ok {
 		v.Responsible = dept
 	} else {
 		v.Responsible = "Security CSIRT (Triage Required)"

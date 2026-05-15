@@ -1,0 +1,18 @@
+ecosystem_owners:
+  golang: "Development Team"
+  npm:    "Development Team"
+  pypi:   "Development Team"
+  maven:  "Development Team"
+  cargo:  "Development Team"
+  deb:    "Infrastructure Team"
+  rpm:    "Infrastructure Team"
+  apk:    "Infrastructure Team"
+
+security_keywords:
+  - openssl
+  - libssl
+  - crypto
+  - jwt
+  - auth
+  - tls
+  - ssl

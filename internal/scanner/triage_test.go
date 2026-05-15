@@ -3,6 +3,7 @@ package scanner
 import (
 	"testing"
 
+	"sbom_manage/internal/config"
 	"sbom_manage/internal/model"
 )
 
@@ -18,7 +19,7 @@ func TestTriageVulnerability_HasPatch(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			v := &model.Vulnerability{FixedVersion: tt.fixedVersion}
-			TriageVulnerability(v)
+			TriageVulnerability(v, config.DefaultConfig())
 			if v.HasPatch != tt.wantHasPatch {
 				t.Errorf("HasPatch = %v, want %v", v.HasPatch, tt.wantHasPatch)
 			}
@@ -44,7 +45,7 @@ func TestTriageVulnerability_SeverityFromScore(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			v := &model.Vulnerability{Score: tt.score}
-			TriageVulnerability(v)
+			TriageVulnerability(v, config.DefaultConfig())
 			if v.Severity != tt.wantSeverity {
 				t.Errorf("Score=%.1f: Severity = %q, want %q", tt.score, v.Severity, tt.wantSeverity)
 			}
@@ -60,9 +61,7 @@ func TestTriageVulnerability_PreservesAPISeverity(t *testing.T) {
 		wantSeverity string
 	}{
 		{"API=MODERATE, Score=8.5", "MODERATE", 8.5, "MODERATE"},
-
 		{"API=CRITICAL, Score=6.0", "CRITICAL", 6.0, "CRITICAL"},
-
 		{"API=空, Score=9.5", "", 9.5, "CRITICAL"},
 		{"API=空, Score=7.0", "", 7.0, "HIGH"},
 	}
@@ -72,7 +71,7 @@ func TestTriageVulnerability_PreservesAPISeverity(t *testing.T) {
 				Severity: tt.apiSeverity,
 				Score:    tt.score,
 			}
-			TriageVulnerability(v)
+			TriageVulnerability(v, config.DefaultConfig())
 			if v.Severity != tt.wantSeverity {
 				t.Errorf("Severity = %q, want %q", v.Severity, tt.wantSeverity)
 			}
@@ -107,11 +106,11 @@ func TestTriageVulnerability_Responsible(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			v := &model.Vulnerability{
 				Purl:     tt.purl,
+				Target:   tt.target,
 				Score:    tt.score,
 				Severity: tt.severity,
-				Target:   tt.target,
 			}
-			TriageVulnerability(v)
+			TriageVulnerability(v, config.DefaultConfig())
 			if v.Responsible != tt.wantResponsible {
 				t.Errorf("Responsible = %q, want %q", v.Responsible, tt.wantResponsible)
 			}

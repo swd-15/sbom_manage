@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"sbom_manage/internal/compare"
+	"sbom_manage/internal/config"
 	"sbom_manage/internal/model"
 	"sbom_manage/internal/parser"
 	"sbom_manage/internal/scanner"
@@ -19,6 +20,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	// config読み込み
+	cfg, err := config.Load("config.yaml")
+	if err != nil {
+		cfg = config.DefaultConfig()
+	}
+
 	st, err := store.DefaultStore()
 	if err != nil {
 		log.Fatalf("❌ ストア初期化エラー: %v", err)
@@ -26,7 +33,7 @@ func main() {
 
 	switch os.Args[1] {
 	case "scan":
-		cmdScan(os.Args[2:], st)
+		cmdScan(os.Args[2:], st, cfg)
 	case "history":
 		cmdHistory(st)
 	case "status":
@@ -38,7 +45,7 @@ func main() {
 	}
 }
 
-func cmdScan(args []string, st store.Store) {
+func cmdScan(args []string, st store.Store, cfg *config.Config) {
 	if len(args) < 1 {
 		fmt.Fprintln(os.Stderr, "Usage: sbom_manage scan <sbom.json>")
 		os.Exit(1)
@@ -78,7 +85,7 @@ func cmdScan(args []string, st store.Store) {
 			v.Severity = severity
 		}
 
-		scanner.TriageVulnerability(&v)
+		scanner.TriageVulnerability(&v, cfg)
 
 		statusLabel := "✅ OK"
 		if v.FixedVersion != "" && compare.NeedsUpdate(v.CurrentVersion, v.FixedVersion) {

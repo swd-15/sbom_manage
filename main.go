@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -15,34 +16,37 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		printUsage()
-		os.Exit(1)
-	}
+    configPath := flag.String("config", "config.yaml", "設定ファイルのパス")
+    flag.Parse()
 
-	// config読み込み
-	cfg, err := config.Load("config.yaml")
-	if err != nil {
-		cfg = config.DefaultConfig()
-	}
+    args := flag.Args()
+    if len(args) < 1 {
+        printUsage()
+        os.Exit(1)
+    }
 
-	st, err := store.DefaultStore()
-	if err != nil {
-		log.Fatalf("❌ ストア初期化エラー: %v", err)
-	}
+    cfg, err := config.Load(*configPath)
+    if err != nil {
+        cfg = config.DefaultConfig()
+    }
 
-	switch os.Args[1] {
-	case "scan":
-		cmdScan(os.Args[2:], st, cfg)
-	case "history":
-		cmdHistory(st)
-	case "status":
-		cmdStatus(os.Args[2:], st)
-	default:
-		fmt.Fprintf(os.Stderr, "❌ 不明なコマンド: %q\n\n", os.Args[1])
-		printUsage()
-		os.Exit(1)
-	}
+    st, err := store.DefaultStore()
+    if err != nil {
+        log.Fatalf("❌ ストア初期化エラー: %v", err)
+    }
+
+    switch args[0] {
+    case "scan":
+        cmdScan(args[1:], st, cfg)
+    case "history":
+        cmdHistory(st)
+    case "status":
+        cmdStatus(args[1:], st)
+    default:
+        fmt.Fprintf(os.Stderr, "❌ 不明なコマンド: %q\n\n", args[0])
+        printUsage()
+        os.Exit(1)
+    }
 }
 
 func cmdScan(args []string, st store.Store, cfg *config.Config) {

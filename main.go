@@ -17,22 +17,23 @@ import (
 )
 
 type JSONOutput struct {
-	ScannedAt       string               `json:"scanned_at"`
-	Source          string               `json:"source"`
+	ScannedAt       string                `json:"scanned_at"`
+	Source          string                `json:"source"`
 	Vulnerabilities []model.Vulnerability `json:"vulnerabilities"`
-	Summary         JSONSummary          `json:"summary"`
+	Summary         JSONSummary           `json:"summary"`
 }
 
 type JSONSummary struct {
-	Total        int `json:"total"`
-	HighOrAbove  int `json:"high_or_above"`
-	Patchable    int `json:"patchable"`
+	Total       int `json:"total"`
+	HighOrAbove int `json:"high_or_above"`
+	Patchable   int `json:"patchable"`
 }
 
 func main() {
 	configPath := flag.String("config", "config.yaml", "設定ファイルのパス")
 	format     := flag.String("format", "text", "出力フォーマット (text / json)")
 	output     := flag.String("output", "", "出力ファイルパス (例: -output result.json)")
+	dataDir    := flag.String("data", "", "データ保存先ディレクトリ (デフォルト: ~/.sbom_manage)")
 	flag.Parse()
 
 	args := flag.Args()
@@ -46,7 +47,12 @@ func main() {
 		cfg = config.DefaultConfig()
 	}
 
-	st, err := store.DefaultStore()
+	var st store.Store
+	if *dataDir != "" {
+		st, err = store.NewFileStore(*dataDir)
+	} else {
+		st, err = store.DefaultStore()
+	}
 	if err != nil {
 		log.Fatalf("❌ ストア初期化エラー: %v", err)
 	}
@@ -293,6 +299,7 @@ Options:
   -config <path>    設定ファイルのパスを指定（デフォルト: ./config.yaml）
   -format <format>  出力フォーマット: text / json（デフォルト: text）
   -output <path>    JSON出力先ファイルパス（例: -output result.json）
+  -data <path>      データ保存先ディレクトリ（デフォルト: ~/.sbom_manage）
 
 Commands:
   scan <sbom.json>                          SBOMをスキャンして結果をDBに保存
@@ -305,6 +312,7 @@ Examples:
   ./sbom_manage scan testdata/testfailed.json
   ./sbom_manage -format json -output result.json scan testdata/testfailed.json
   ./sbom_manage -config /etc/sbom_manage/config.yaml scan sbom.json
+  ./sbom_manage -data /var/sbom_manage scan sbom.json
   ./sbom_manage history
   ./sbom_manage status CVE-2021-44228 in-progress "担当者アサイン済み"
   ./sbom_manage status CVE-2021-44228 done "4.17.21にアップデート完了"

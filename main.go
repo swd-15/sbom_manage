@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -15,8 +16,23 @@ import (
 	"time"
 )
 
+type JSONOutput struct {
+	ScannedAt       string               `json:"scanned_at"`
+	Source          string               `json:"source"`
+	Vulnerabilities []model.Vulnerability `json:"vulnerabilities"`
+	Summary         JSONSummary          `json:"summary"`
+}
+
+type JSONSummary struct {
+	Total        int `json:"total"`
+	HighOrAbove  int `json:"high_or_above"`
+	Patchable    int `json:"patchable"`
+}
+
 func main() {
 	configPath := flag.String("config", "config.yaml", "設定ファイルのパス")
+	format     := flag.String("format", "text", "出力フォーマット (text / json)")
+	output     := flag.String("output", "", "出力ファイルパス (例: -output result.json)")
 	flag.Parse()
 
 	args := flag.Args()
@@ -37,7 +53,7 @@ func main() {
 
 	switch args[0] {
 	case "scan":
-		os.Exit(cmdScan(args[1:], st, cfg))
+		os.Exit(cmdScan(args[1:], st, cfg, *format, *output))
 	case "history":
 		cmdHistory(st)
 	case "status":
@@ -49,7 +65,7 @@ func main() {
 	}
 }
 
-func cmdScan(args []string, st store.Store, cfg *config.Config) int {
+func cmdScan(args []string, st store.Store, cfg *config.Config, format string, output string) int {
 	if len(args) < 1 {
 		fmt.Fprintln(os.Stderr, "Usage: sbom_manage scan <sbom.json>")
 		os.Exit(1)
@@ -61,13 +77,15 @@ func cmdScan(args []string, st store.Store, cfg *config.Config) int {
 		log.Fatalf("❌ Error: %v", err)
 	}
 
-	fmt.Printf("SBOM: %s\n", targetFile)
-	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Printf("%-35s | %-12s | %-20s | %s\n", "TARGET", "VERSION", "RESPONSIBLE", "STATUS")
-	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-
 	deptCounts := make(map[string]int)
 	var vulns []model.Vulnerability
+
+	if format != "json" {
+		fmt.Printf("SBOM: %s\n", targetFile)
+		fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+		fmt.Printf("%-35s | %-12s | %-20s | %s\n", "TARGET", "VERSION", "RESPONSIBLE", "STATUS")
+		fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+	}
 
 	for _, pkg := range report.Packages {
 		v := model.Vulnerability{
@@ -79,8 +97,10 @@ func cmdScan(args []string, st store.Store, cfg *config.Config) int {
 		if v.Purl != "" {
 			fixed, score, cveID, severity, err := scanner.FetchVulnerabilityData(v.Purl)
 			if err != nil {
-				fmt.Printf("%-35s | %-12s | %-20s | ⚠️  SCAN FAILED (%v)\n",
-					truncate(v.Target, 35), v.CurrentVersion, "—", err)
+				if format != "json" {
+					fmt.Printf("%-35s | %-12s | %-20s | ⚠️  SCAN FAILED (%v)\n",
+						truncate(v.Target, 35), v.CurrentVersion, "—", err)
+				}
 				continue
 			}
 			v.FixedVersion = fixed
@@ -101,20 +121,21 @@ func cmdScan(args []string, st store.Store, cfg *config.Config) int {
 			vulns = append(vulns, v)
 		}
 
-		fmt.Printf("%-35s | %-12s | %-20s | %s\n",
-			truncate(v.Target, 35), v.CurrentVersion, v.Responsible, statusLabel)
+		if format != "json" {
+			fmt.Printf("%-35s | %-12s | %-20s | %s\n",
+				truncate(v.Target, 35), v.CurrentVersion, v.Responsible, statusLabel)
 
-		if v.Score > 0 {
-			color := "\x1b[33m"
-			if v.Score >= 8.0 {
-				color = "\x1b[31m"
+			if v.Score > 0 {
+				color := "\x1b[33m"
+				if v.Score >= 8.0 {
+					color = "\x1b[31m"
+				}
+				fmt.Printf("   └── %s[%s]\x1b[0m ID: %s, Score: %.1f\n", color, v.Severity, v.Name, v.Score)
 			}
-			fmt.Printf("   └── %s[%s]\x1b[0m ID: %s, Score: %.1f\n", color, v.Severity, v.Name, v.Score)
 		}
 	}
 
-	printSummary(deptCounts)
-
+	// スキャン履歴を保存
 	scanID := fmt.Sprintf("%d", time.Now().UnixNano())
 	if err := st.SaveScan(store.ScanRecord{
 		ID:        scanID,
@@ -123,7 +144,47 @@ func cmdScan(args []string, st store.Store, cfg *config.Config) int {
 		Vulns:     vulns,
 	}); err != nil {
 		fmt.Fprintf(os.Stderr, "⚠️  スキャン履歴の保存に失敗: %v\n", err)
+	}
+
+	// JSON出力
+	if format == "json" {
+		highOrAbove := 0
+		patchable := 0
+		for _, v := range vulns {
+			if v.Score >= 7.0 || v.Severity == "HIGH" || v.Severity == "CRITICAL" {
+				highOrAbove++
+			}
+			if v.HasPatch {
+				patchable++
+			}
+		}
+
+		out := JSONOutput{
+			ScannedAt:       time.Now().Format(time.RFC3339),
+			Source:          targetFile,
+			Vulnerabilities: vulns,
+			Summary: JSONSummary{
+				Total:       len(vulns),
+				HighOrAbove: highOrAbove,
+				Patchable:   patchable,
+			},
+		}
+
+		data, err := json.MarshalIndent(out, "", "  ")
+		if err != nil {
+			log.Fatalf("❌ JSON変換エラー: %v", err)
+		}
+
+		if output != "" {
+			if err := os.WriteFile(output, data, 0644); err != nil {
+				log.Fatalf("❌ ファイル書き込みエラー: %v", err)
+			}
+			fmt.Printf("✅ JSONレポートを保存しました: %s\n", output)
+		} else {
+			fmt.Println(string(data))
+		}
 	} else {
+		printSummary(deptCounts)
 		fmt.Printf("\n💾 スキャン結果を保存しました (ID: %s)\n", scanID)
 	}
 
@@ -229,7 +290,9 @@ func printUsage() {
 	fmt.Print(`Usage: sbom_manage <command> [args]
 
 Options:
-  -config <path>   設定ファイルのパスを指定（デフォルト: ./config.yaml）
+  -config <path>    設定ファイルのパスを指定（デフォルト: ./config.yaml）
+  -format <format>  出力フォーマット: text / json（デフォルト: text）
+  -output <path>    JSON出力先ファイルパス（例: -output result.json）
 
 Commands:
   scan <sbom.json>                          SBOMをスキャンして結果をDBに保存
@@ -240,6 +303,7 @@ Commands:
 
 Examples:
   ./sbom_manage scan testdata/testfailed.json
+  ./sbom_manage -format json -output result.json scan testdata/testfailed.json
   ./sbom_manage -config /etc/sbom_manage/config.yaml scan sbom.json
   ./sbom_manage history
   ./sbom_manage status CVE-2021-44228 in-progress "担当者アサイン済み"

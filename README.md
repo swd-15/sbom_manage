@@ -100,7 +100,10 @@ status <CVE-ID> <status> <note>           メモ付きで更新
 ### オプション
 
 ```
--config <path>   設定ファイルのパスを指定（デフォルト: ./config.yaml）
+-config <path>    設定ファイルのパスを指定（デフォルト: ./config.yaml）
+-format <format>  出力フォーマット: text / json（デフォルト: text）
+-output <path>    JSON出力先ファイルパス（例: -output result.json）
+-data <path>      データ保存先ディレクトリ（デフォルト: ~/.sbom_manage）
 ```
 
 ### 実行例
@@ -109,8 +112,14 @@ status <CVE-ID> <status> <note>           メモ付きで更新
 # スキャン
 ./sbom_manage scan testdata/testfailed.json
 
+# JSON形式で出力
+./sbom_manage -format json -output result.json scan sbom.json
+
 # 設定ファイルを指定してスキャン
 ./sbom_manage -config /etc/sbom_manage/config.yaml scan sbom.json
+
+# データ保存先を指定してスキャン
+./sbom_manage -data /var/sbom_manage scan sbom.json
 
 # 履歴確認
 ./sbom_manage history

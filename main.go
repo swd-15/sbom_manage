@@ -121,9 +121,13 @@ func cmdScan(args []string, st store.Store, cfg *config.Config, format string, o
 		if v.FixedVersion != "" && compare.NeedsUpdate(v.CurrentVersion, v.FixedVersion) {
 			statusLabel = fmt.Sprintf("⚠️  UPDATE (-> %s)", v.FixedVersion)
 			deptCounts[v.Responsible]++
-			if vs, _ := st.GetStatus(v.Name); vs != nil {
+
+			if vs, err := st.GetStatus(v.Name); err != nil {
+				fmt.Fprintf(os.Stderr, "⚠️  ステータス取得エラー (%s): %v\n", v.Name, err)
+			} else if vs != nil {
 				statusLabel += fmt.Sprintf(" [%s]", vs.Status)
 			}
+
 			vulns = append(vulns, v)
 		}
 
@@ -141,15 +145,19 @@ func cmdScan(args []string, st store.Store, cfg *config.Config, format string, o
 		}
 	}
 
-	// スキャン履歴を保存
+	//OSV API失敗時はスキャン結果を保存しない
 	scanID := fmt.Sprintf("%d", time.Now().UnixNano())
-	if err := st.SaveScan(store.ScanRecord{
+	if len(vulns) == 0 && len(report.Packages) > 0 {
+		fmt.Fprintln(os.Stderr, "⚠️  脆弱性データが取得できなかったためスキャン結果を保存しません")
+	} else if err := st.SaveScan(store.ScanRecord{
 		ID:        scanID,
 		ScannedAt: time.Now(),
 		Source:    targetFile,
 		Vulns:     vulns,
 	}); err != nil {
 		fmt.Fprintf(os.Stderr, "⚠️  スキャン履歴の保存に失敗: %v\n", err)
+	} else {
+		fmt.Printf("\n💾 スキャン結果を保存しました (ID: %s)\n", scanID)
 	}
 
 	// JSON出力
@@ -191,7 +199,6 @@ func cmdScan(args []string, st store.Store, cfg *config.Config, format string, o
 		}
 	} else {
 		printSummary(deptCounts)
-		fmt.Printf("\n💾 スキャン結果を保存しました (ID: %s)\n", scanID)
 	}
 
 	// CRITICAL/HIGHがあればexit 1
